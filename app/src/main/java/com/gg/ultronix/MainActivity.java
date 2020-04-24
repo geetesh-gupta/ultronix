@@ -8,21 +8,21 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.gg.ultronix.exception.UltronixException;
 import com.gg.ultronix.utils.DebugUtils;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 public class MainActivity extends AppCompatActivity {
   Ultronix ultronix;
 
   EditText freqText;
-  TextView text;
-  Button send;
-  Button stop;
+  TextView showFreqTextView;
+  FloatingActionButton fab;
+  private boolean isPlaying = false;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -49,22 +49,35 @@ public class MainActivity extends AppCompatActivity {
     ultronix = new Ultronix();
     try {
       ultronix.startListening();
+      ultronix.setUltronixListener(this::OnReceiveData);
     } catch (UltronixException e) {
       e.printStackTrace();
     }
 
-    send = findViewById(R.id.button);
-    stop = findViewById(R.id.button2);
-    text = findViewById(R.id.textView);
-    freqText = findViewById(R.id.editText);
+    fab = findViewById(R.id.fab);
+    showFreqTextView = findViewById(R.id.curFreq);
+    freqText = findViewById(R.id.inputFreq);
 
-    send.setOnClickListener(v -> {
-      String editTextValue = freqText.getText().toString();
-      if (!editTextValue.equals("")) ultronix.send(Integer.parseInt(editTextValue));
-      else ultronix.send((short) 15000);
-    });
-    stop.setOnClickListener(v -> ultronix.stopSending());
-    ultronix.setUltronixListener(this::OnReceiveData);
+    fab.setOnClickListener(v -> handlePlay());
+  }
+
+  private void handlePlay() {
+    String freqString = freqText.getText().toString();
+    if (!"".equals(freqString)) {
+      if (!isPlaying) {
+        // Play Tone
+        ultronix.send(Integer.parseInt(freqString));
+        isPlaying = true;
+        fab.setImageResource(R.drawable.ic_stop_white_24dp);
+      } else {
+        // Stop Tone
+        ultronix.stopSending();
+        isPlaying = false;
+        fab.setImageResource(R.drawable.ic_play_arrow_white_24dp);
+      }
+    } else if ("".equals(freqString)) {
+      Toast.makeText(MainActivity.this, "Please enter a frequency!", Toast.LENGTH_SHORT).show();
+    }
   }
 
   // Handling callback
@@ -82,6 +95,6 @@ public class MainActivity extends AppCompatActivity {
 
   private void OnReceiveData(short data) {
     DebugUtils.log("Received MaxAmpFreq " + data);
-    text.setText(String.valueOf(data));
+    showFreqTextView.setText(String.valueOf(data));
   }
 }
