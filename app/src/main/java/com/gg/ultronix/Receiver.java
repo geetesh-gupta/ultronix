@@ -4,6 +4,8 @@ import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.MediaRecorder;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import com.gg.ultronix.exception.UltronixException;
@@ -80,6 +82,7 @@ public class Receiver {
         while (threadRunning) {
           audioRecord.read(recordedData, 0, ConfigUtils.TIME_BAND);
           short parsedData = parseRecData(recordedData);
+//          Ultronix.ultronixListener.OnReceiveData(parsedData);
           list.add(parsedData);
         }
       }
@@ -89,7 +92,8 @@ public class Receiver {
   private short parseRecData(short[] recordedData) {
     float[] floatData = ListUtils.convertArrayShortToArrayFloat(recordedData);
     short freq = calcFreq(floatData);
-    DebugUtils.log("Freq: " + freq);
+    new Handler(Looper.getMainLooper()).post(() -> Ultronix.ultronixListener.OnReceiveData(freq));
+
     return freq;
   }
 

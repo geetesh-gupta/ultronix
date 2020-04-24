@@ -17,7 +17,7 @@ public class Ultronix {
 
   private Activity activity;
 
-  private static UltronixListener ultronixListener;
+  public static UltronixListener ultronixListener;
 
   public Ultronix(Activity activity) {
     this.activity = activity;
@@ -46,7 +46,7 @@ public class Ultronix {
   public interface UltronixListener {
     void OnReceiveData(short freq);
 
-    void OnReceiveError(int code, String msg);
+//    void OnReceiveError(int code, String msg);
   }
 
   public void setUltronixListener(UltronixListener listener) {

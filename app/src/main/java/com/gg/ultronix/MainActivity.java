@@ -7,7 +7,6 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.text.Editable;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
@@ -15,11 +14,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.gg.ultronix.exception.UltronixException;
-import com.gg.ultronix.utils.BytesUtils;
 import com.gg.ultronix.utils.DebugUtils;
-
-import java.util.Date;
-
 
 public class MainActivity extends AppCompatActivity {
   Ultronix ultronix;
@@ -28,6 +23,8 @@ public class MainActivity extends AppCompatActivity {
   TextView text;
   Button send;
   Button stop;
+
+  Ultronix.UltronixListener listener;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -76,24 +73,10 @@ public class MainActivity extends AppCompatActivity {
       else ultronix.send((short) 15000);
     });
     stop.setOnClickListener(v -> ultronix.stopSending());
-
-    ultronix.setUltronixListener(
-        new Ultronix.UltronixListener() {
-          @Override
-          public void OnReceiveData(short freq) {
-            text.setText(freq);
-            Log.v("GGGGGGG", "123");
-          }
-
-          @Override
-          public void OnReceiveError(int code, String msg) {
-            DebugUtils.log("Error while receiving freq");
-          }
-        }
-    );
+    ultronix.setUltronixListener(this::OnReceiveData);
   }
 
-  //Handling callback
+  // Handling callback
   @Override
   public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
     if (requestCode == 1) {
@@ -106,4 +89,8 @@ public class MainActivity extends AppCompatActivity {
     }
   }
 
+  private void OnReceiveData(short data) {
+    DebugUtils.log("Received MaxAmpFreq " + data);
+    text.setText(String.valueOf(data));
+  }
 }
