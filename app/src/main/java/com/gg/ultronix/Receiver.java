@@ -6,18 +6,12 @@ import android.media.AudioTrack;
 import android.media.MediaRecorder;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 
-import com.gg.ultronix.exception.UltronixException;
 import com.gg.ultronix.fft.FFT;
 import com.gg.ultronix.utils.ConfigUtils;
-import com.gg.ultronix.utils.DebugUtils;
 import com.gg.ultronix.utils.ListUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-
-public class Receiver {
+class Receiver {
   private AudioRecord audioRecord;
 
   private Thread thread;
@@ -26,17 +20,16 @@ public class Receiver {
 
   private static Receiver sReceiver;
 
-  private static List<Short> list = new ArrayList<>();
   private short[] recordedData = new short[ConfigUtils.TIME_BAND];
 
-  public static Receiver getReceiver() {
+  static Receiver getReceiver() {
     if (sReceiver == null) {
       sReceiver = new Receiver();
     }
     return sReceiver;
   }
 
-  public void initializeReceiver() throws UltronixException {
+  void initializeReceiver() {
     if (audioRecord == null || audioRecord.getState() == AudioRecord.STATE_UNINITIALIZED) {
       audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, ConfigUtils.SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, ConfigUtils.AUDIO_FORMAT, AudioTrack.getMinBufferSize(ConfigUtils.SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT) * 4);
     }
@@ -58,11 +51,7 @@ public class Receiver {
     }
   }
 
-  public static List<Short> getList() {
-    return list;
-  }
-
-  public void stopReceiver() throws UltronixException {
+  void stopReceiver() {
     if (audioRecord != null && audioRecord.getState() == AudioRecord.STATE_INITIALIZED) {
       audioRecord.stop();
       audioRecord.release();
@@ -81,26 +70,19 @@ public class Receiver {
       public void run() {
         while (threadRunning) {
           audioRecord.read(recordedData, 0, ConfigUtils.TIME_BAND);
-          short parsedData = parseRecData(recordedData);
-//          Ultronix.ultronixListener.OnReceiveData(parsedData);
-          list.add(parsedData);
+          parseRecData(recordedData);
         }
       }
     };
   }
 
-  private short parseRecData(short[] recordedData) {
+  private void parseRecData(short[] recordedData) {
     float[] floatData = ListUtils.convertArrayShortToArrayFloat(recordedData);
     short freq = calcFreq(floatData);
     new Handler(Looper.getMainLooper()).post(() -> Ultronix.ultronixListener.OnReceiveData(freq));
-
-    return freq;
   }
 
   private static short calcFreq(float[] floatData) {
-//    StringBuilder s = new StringBuilder();
-//    for (float floatDatum : floatData) s.append(floatDatum);
-//    Log.v("GG", s.toString());
     int size = floatData.length;
     int fftSize = calcFftSize(size);
     FFT fft = new FFT(fftSize, ConfigUtils.SAMPLE_RATE);
@@ -109,7 +91,6 @@ public class Receiver {
     short index = 0;
     for (short i = ConfigUtils.FREQ_RANGE_START; i < ConfigUtils.FREQ_RANGE_END; i++) {
       float curAmp = fft.getFreq(i);
-//      Log.v("GG", "Freq " + i + " Amp " + curAmp);
       if (curAmp > maxAmp) {
         maxAmp = curAmp;
         index = i;

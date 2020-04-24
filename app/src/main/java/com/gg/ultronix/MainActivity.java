@@ -1,5 +1,6 @@
 package com.gg.ultronix;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -7,7 +8,6 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -24,8 +24,6 @@ public class MainActivity extends AppCompatActivity {
   Button send;
   Button stop;
 
-  Ultronix.UltronixListener listener;
-
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -38,16 +36,9 @@ public class MainActivity extends AppCompatActivity {
 
       if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.RECORD_AUDIO)) {
         Toast.makeText(this, "Please grant permissions to record audio", Toast.LENGTH_LONG).show();
-
-        //Give user option to still opt-in the permissions
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, 1);
       } else {
-        // No explanation needed; request the permission
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, 1);
-
-        // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
-        // app-defined int constant. The callback method gets the
-        // result of the request.
       }
     } else {
       work();
@@ -55,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   public void work() {
-    ultronix = new Ultronix(this);
+    ultronix = new Ultronix();
     try {
       ultronix.startListening();
     } catch (UltronixException e) {
@@ -78,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
 
   // Handling callback
   @Override
-  public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+  public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
     if (requestCode == 1) {
       if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
         work();

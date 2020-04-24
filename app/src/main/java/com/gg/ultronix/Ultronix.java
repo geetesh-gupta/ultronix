@@ -1,10 +1,6 @@
 package com.gg.ultronix;
 
-import android.app.Activity;
-
 import com.gg.ultronix.exception.UltronixException;
-
-import java.util.List;
 
 /**
  * Enable you to use the Ultronix, <br>
@@ -14,16 +10,9 @@ import java.util.List;
  * @version 0.0.1
  */
 public class Ultronix {
+  static UltronixListener ultronixListener;
 
-  private Activity activity;
-
-  public static UltronixListener ultronixListener;
-
-  public Ultronix(Activity activity) {
-    this.activity = activity;
-  }
-
-  public void startListening() throws UltronixException {
+  void startListening() throws UltronixException {
     Receiver.getReceiver().initializeReceiver();
   }
 
@@ -31,25 +20,19 @@ public class Ultronix {
     Receiver.getReceiver().stopReceiver();
   }
 
-  public void send(int freq) {
+  void send(int freq) {
     Sender.getSender().send(freq);
   }
 
-  public void stopSending() {
+  void stopSending() {
     Sender.getSender().stop();
-  }
-
-  public List<Short> receive() {
-    return Receiver.getList();
   }
 
   public interface UltronixListener {
     void OnReceiveData(short freq);
-
-//    void OnReceiveError(int code, String msg);
   }
 
-  public void setUltronixListener(UltronixListener listener) {
+  void setUltronixListener(UltronixListener listener) {
     ultronixListener = listener;
   }
 
