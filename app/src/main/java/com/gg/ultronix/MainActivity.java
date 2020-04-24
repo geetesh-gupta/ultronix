@@ -24,6 +24,11 @@ import java.util.Date;
 public class MainActivity extends AppCompatActivity {
   Ultronix ultronix;
 
+  EditText freqText;
+  TextView text;
+  Button send;
+  Button stop;
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -60,19 +65,17 @@ public class MainActivity extends AppCompatActivity {
       e.printStackTrace();
     }
 
-    EditText freqText = findViewById(R.id.editText);
-    String editTextValue = freqText.getText().toString();
+    send = findViewById(R.id.button);
+    stop = findViewById(R.id.button2);
+    text = findViewById(R.id.textView);
+    freqText = findViewById(R.id.editText);
 
-    Button send = findViewById(R.id.button);
-    Button stop = findViewById(R.id.button2);
     send.setOnClickListener(v -> {
-      if (!editTextValue.equals("")) ultronix.send(Short.parseShort(editTextValue));
-      else ultronix.send((short)15000);
+      String editTextValue = freqText.getText().toString();
+      if (!editTextValue.equals("")) ultronix.send(Integer.parseInt(editTextValue));
+      else ultronix.send((short) 15000);
     });
     stop.setOnClickListener(v -> ultronix.stopSending());
-
-
-    TextView text = findViewById(R.id.textView);
 
     ultronix.setUltronixListener(
         new Ultronix.UltronixListener() {
