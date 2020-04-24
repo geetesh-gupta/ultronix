@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Ultronix</string>
+    <string name="textview">CurFreq</string>
+    <string name="send">Play</string>
+    <string name="stop">Stop</string>
+    <string name="frequency">15000</string>
 </resources>
