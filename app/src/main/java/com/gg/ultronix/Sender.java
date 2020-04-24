@@ -7,6 +7,7 @@ import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.os.Build;
 import android.util.Log;
+
 import java.util.concurrent.TimeUnit;
 
 import com.gg.ultronix.utils.ConfigUtils;
@@ -52,12 +53,14 @@ public class Sender {
     thread = new Thread() {
       public void run() {
         while (true) {
+          if (mAudioTrack == null) break;
           mAudioTrack.play();
           try {
             Thread.sleep(100);
           } catch (Exception e) {
             System.out.println("Unable to sleep thread");
           }
+          if (mAudioTrack == null) break;
           mAudioTrack.stop();
         }
       }
@@ -66,21 +69,21 @@ public class Sender {
   }
 
   synchronized void stop() {
+    if (mAudioTrack != null) {
+      mAudioTrack.stop();
+      mAudioTrack.release();
+      mAudioTrack = null;
+    }
     started = false;
     threadRunning = false;
     if (thread != null) {
       try {
         thread.interrupt();
-        thread.join();
+//        thread.join();
         thread = null;
       } catch (Exception e) {
         Log.e("Err", e.toString());
       }
-    }
-    if (mAudioTrack != null) {
-      mAudioTrack.stop();
-      mAudioTrack.release();
-      mAudioTrack = null;
     }
   }
 
