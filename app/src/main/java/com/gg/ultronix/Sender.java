@@ -35,7 +35,7 @@ public class Sender {
 
   public void send(Activity activity, int freq) {
     List<Short> list = new ArrayList<>();
-    for (int i = 0; i < 5*ConfigUtils.TIME_BAND; i++) {
+    for (int i = 0; i < ConfigUtils.TIME_BAND; i++) {
       double angle = 2.0 * i * freq * Math.PI / ConfigUtils.SAMPLE_RATE;
       list.add((short) (Math.sin(angle) * ConfigUtils.MAX_SIGNAL_STRENGTH));
     }
