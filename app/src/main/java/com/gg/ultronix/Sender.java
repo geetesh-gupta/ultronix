@@ -42,23 +42,23 @@ public class Sender {
   }
 
   private synchronized void play(final List<Short> list) {
-    int mode = AudioTrack.MODE_STREAM;
+    int mode = AudioTrack.MODE_STATIC;
     generateAudioTrack(mode);
     thread = new Thread() {
       public void run() {
         if (!started) {
-          while (mAudioTrack.getState() != AudioTrack.STATE_INITIALIZED) {
+          if (mAudioTrack == null) generateAudioTrack(mode);
+          mAudioTrack.write(ListUtils.convertListShortToArrayShort(list), 0, list.size());
+          if (mAudioTrack.getState() != AudioTrack.STATE_INITIALIZED) {
             generateAudioTrack(mode);
           }
           mAudioTrack.play();
-          mAudioTrack.write(ListUtils.convertListShortToArrayShort(list), 0, list.size());
           started = true;
         }
         if (mAudioTrack.getPlayState() != AudioTrack.PLAYSTATE_PLAYING) {
-          while (mAudioTrack.getState() != AudioTrack.STATE_INITIALIZED) {
+          if (mAudioTrack.getState() != AudioTrack.STATE_INITIALIZED) {
             generateAudioTrack(mode);
           }
-          mAudioTrack.write(ListUtils.convertListShortToArrayShort(list), 0, list.size());
           mAudioTrack.play();
         }
       }
