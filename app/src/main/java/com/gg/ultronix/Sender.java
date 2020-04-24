@@ -1,6 +1,5 @@
 package com.gg.ultronix;
 
-import android.app.Activity;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioManager;
@@ -8,14 +7,7 @@ import android.media.AudioTrack;
 import android.os.Build;
 import android.util.Log;
 
-import java.util.concurrent.TimeUnit;
-
 import com.gg.ultronix.utils.ConfigUtils;
-import com.gg.ultronix.utils.DebugUtils;
-import com.gg.ultronix.utils.ListUtils;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class Sender {
 
@@ -34,22 +26,62 @@ public class Sender {
     return sSender;
   }
 
-  public void send(Activity activity, int freq) {
-    List<Short> list = new ArrayList<>();
-    for (int i = 0; i < ConfigUtils.TIME_BAND; i++) {
-      double angle = 2.0 * i * freq * Math.PI / ConfigUtils.SAMPLE_RATE;
-      list.add((short) (Math.sin(angle) * ConfigUtils.MAX_SIGNAL_STRENGTH));
-    }
-
+  public void send(int freq) {
+    byte[] generatedFreqBytes = generateFreqBytes(freq);
     int mode = AudioTrack.MODE_STATIC;
     if (mAudioTrack == null) {
       generateAudioTrack(mode);
-      mAudioTrack.write(ListUtils.convertListShortToArrayShort(list), 0, list.size());
-      play(list);
+      mAudioTrack.write(generatedFreqBytes, 0, generatedFreqBytes.length);
+      play();
     }
   }
 
-  private synchronized void play(final List<Short> list) {
+  private byte[] generateFreqBytes(int freq) {
+    double dnumSamples = (double) 10 * ConfigUtils.SAMPLE_RATE;
+    dnumSamples = Math.ceil(dnumSamples);
+    int numSamples = (int) dnumSamples;
+    double[] sample = new double[numSamples];
+    byte[] generatedSnd = new byte[2 * numSamples];
+
+    for (int i = 0; i < numSamples; ++i) {      // Fill the sample array
+      sample[i] = Math.sin(freq * 2 * Math.PI * i / (ConfigUtils.SAMPLE_RATE));
+    }
+
+    // convert to 16 bit pcm sound array
+    // assumes the sample buffer is normalized.
+    int idx = 0;
+    int i;
+
+    int ramp = numSamples / 20;  // Amplitude ramp as a percent of sample count
+
+    for (i = 0; i < ramp; ++i) {  // Ramp amplitude up (to avoid clicks)
+      // Ramp up to maximum
+      final short val = (short) (sample[i] * 32767 * i / ramp);
+      // in 16 bit wav PCM, first byte is the low order byte
+      generatedSnd[idx++] = (byte) (val & 0x00ff);
+      generatedSnd[idx++] = (byte) ((val & 0xff00) >>> 8);
+    }
+
+    for (i = ramp; i < numSamples - ramp;
+         ++i) {                        // Max amplitude for most of the samples
+      // scale to maximum amplitude
+      final short val = (short) (sample[i] * 32767);
+      // in 16 bit wav PCM, first byte is the low order byte
+      generatedSnd[idx++] = (byte) (val & 0x00ff);
+      generatedSnd[idx++] = (byte) ((val & 0xff00) >>> 8);
+    }
+
+    for (i = numSamples - ramp; i < numSamples; ++i) { // Ramp amplitude down
+      // Ramp down to zero
+      final short val = (short) (sample[i] * 32767 * (numSamples - i) / ramp);
+      // in 16 bit wav PCM, first byte is the low order byte
+      generatedSnd[idx++] = (byte) (val & 0x00ff);
+      generatedSnd[idx++] = (byte) ((val & 0xff00) >>> 8);
+    }
+    return generatedSnd;
+  }
+
+  private synchronized void play() {
     thread = new Thread() {
       public void run() {
         while (true) {

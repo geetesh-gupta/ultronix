@@ -31,8 +31,8 @@ public class Ultronix {
     Receiver.getReceiver().stopReceiver();
   }
 
-  public void send(short freq) {
-    Sender.getSender().send(activity, freq);
+  public void send(int freq) {
+    Sender.getSender().send(freq);
   }
 
   public void stopSending() {
