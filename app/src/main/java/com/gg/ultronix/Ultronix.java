@@ -17,7 +17,7 @@ public class Ultronix {
 
   private Activity activity;
 
-//  private static SoundifyListener soundifyListener;
+  private static UltronixListener ultronixListener;
 
   public Ultronix(Activity activity) {
     this.activity = activity;
@@ -35,18 +35,22 @@ public class Ultronix {
     Sender.getSender().send(activity, freq);
   }
 
+  public void stopSending() {
+    Sender.getSender().stop();
+  }
+
   public List<Short> receive() {
     return Receiver.getList();
   }
 
-//  public interface SoundifyListener {
-//    void OnReceiveData(byte[] data);
-//
-//    void OnReceiveError(int code, String msg);
-//  }
-//
-//  public void setSoundifyListener(SoundifyListener listener) {
-//    soundifyListener = listener;
-//  }
+  public interface UltronixListener {
+    void OnReceiveData(short freq);
+
+    void OnReceiveError(int code, String msg);
+  }
+
+  public void setUltronixListener(UltronixListener listener) {
+    ultronixListener = listener;
+  }
 
 }

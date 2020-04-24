@@ -21,6 +21,10 @@ public class Sender {
 
   private AudioTrack mAudioTrack;
 
+  private Thread thread;
+  private boolean threadRunning = true;
+  private boolean started = false;
+
   public static Sender getSender() {
     if (sSender == null) {
       sSender = new Sender();
@@ -31,55 +35,20 @@ public class Sender {
   public void send(Activity activity, int freq) {
     List<Short> list = new ArrayList<>();
     for (int i = 0; i < ConfigUtils.TIME_BAND; i++) {
-      double angle = 2.0 * freq * Math.PI / ConfigUtils.SAMPLE_RATE;
+      double angle = 2.0 * i * freq * Math.PI / ConfigUtils.SAMPLE_RATE;
       list.add((short) (Math.sin(angle) * ConfigUtils.MAX_SIGNAL_STRENGTH));
     }
-    sendData(activity, list);
-//    play(list);
-  }
-
-  private Thread thread;
-  private boolean threadRunning = true;
-  private boolean started = false;
-//
-//  private void sendData(Activity activity, final List<Short> list) {
-//    generateAudioTrack();
-//    activity.runOnUiThread(new Runnable() {
-//      @Override
-//      public void run() {
-//        while (mAudioTrack.getState() != AudioTrack.STATE_INITIALIZED) {
-//          generateAudioTrack();
-//        }
-//        mAudioTrack.play();
-//        mAudioTrack.write(ListUtils.convertListShortToArrayShort(list), 0, list.size());
-//      }
-//    });
-//  }
-
-
-  private void sendData(Activity activity, final List<Short> list) {
-    generateAudioTrack();
-    activity.runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        while (mAudioTrack.getState() != AudioTrack.STATE_INITIALIZED) {
-          generateAudioTrack();
-        }
-        mAudioTrack.write(ListUtils.convertListShortToArrayShort(list), 0, list.size());
-        int count = 0;
-        while (count++ < 100)
-          mAudioTrack.play();
-      }
-    });
+    play(list);
   }
 
   private synchronized void play(final List<Short> list) {
-    generateAudioTrack();
+    int mode = AudioTrack.MODE_STREAM;
+    generateAudioTrack(mode);
     thread = new Thread() {
       public void run() {
         if (!started) {
           while (mAudioTrack.getState() != AudioTrack.STATE_INITIALIZED) {
-            generateAudioTrack();
+            generateAudioTrack(mode);
           }
           mAudioTrack.play();
           mAudioTrack.write(ListUtils.convertListShortToArrayShort(list), 0, list.size());
@@ -87,8 +56,9 @@ public class Sender {
         }
         if (mAudioTrack.getPlayState() != AudioTrack.PLAYSTATE_PLAYING) {
           while (mAudioTrack.getState() != AudioTrack.STATE_INITIALIZED) {
-            generateAudioTrack();
+            generateAudioTrack(mode);
           }
+          mAudioTrack.write(ListUtils.convertListShortToArrayShort(list), 0, list.size());
           mAudioTrack.play();
         }
       }
@@ -96,7 +66,25 @@ public class Sender {
     thread.start();
   }
 
-  private void generateAudioTrack() {
+  synchronized void stop() {
+    started = false;
+    if (thread != null) {
+      try {
+        thread.interrupt();
+        thread.join();
+        thread = null;
+      } catch (Exception e) {
+        Log.e("Err", e.toString());
+      }
+    }
+    if (mAudioTrack != null) {
+      mAudioTrack.stop();
+      mAudioTrack.release();
+      mAudioTrack = null;
+    }
+  }
+
+  private void generateAudioTrack(int mode) {
     if (mAudioTrack == null || mAudioTrack.getState() != AudioTrack.STATE_INITIALIZED) {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
         mAudioTrack = new AudioTrack.Builder()
@@ -110,10 +98,10 @@ public class Sender {
                 .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                 .build())
             .setBufferSizeInBytes(AudioTrack.getMinBufferSize(ConfigUtils.SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO, ConfigUtils.AUDIO_FORMAT) * 4)
-            .setTransferMode(AudioTrack.MODE_STATIC)
+            .setTransferMode(mode)
             .build();
       } else {
-        mAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, ConfigUtils.SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO, ConfigUtils.AUDIO_FORMAT, AudioTrack.getMinBufferSize(ConfigUtils.SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT) * 4, AudioTrack.MODE_STATIC);
+        mAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, ConfigUtils.SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO, ConfigUtils.AUDIO_FORMAT, AudioTrack.getMinBufferSize(ConfigUtils.SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT) * 4, mode);
       }
     }
   }
