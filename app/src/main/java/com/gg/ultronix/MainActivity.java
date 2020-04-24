@@ -7,11 +7,18 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.text.Editable;
+import android.util.Log;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.gg.ultronix.exception.UltronixException;
+import com.gg.ultronix.utils.BytesUtils;
+import com.gg.ultronix.utils.DebugUtils;
+
+import java.util.Date;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -53,13 +60,34 @@ public class MainActivity extends AppCompatActivity {
       e.printStackTrace();
     }
 
+    EditText freqText = findViewById(R.id.editText);
+    String editTextValue = freqText.getText().toString();
+
     Button send = findViewById(R.id.button);
-    send.setOnClickListener(v -> ultronix.send((short) 4000));
+    Button stop = findViewById(R.id.button2);
+    send.setOnClickListener(v -> {
+      if (!editTextValue.equals("")) ultronix.send(Short.parseShort(editTextValue));
+      else ultronix.send((short)15000);
+    });
+    stop.setOnClickListener(v -> ultronix.stopSending());
+
 
     TextView text = findViewById(R.id.textView);
-    if (text.getText() != ultronix.receive()) {
-      text.setText(ultronix.receive().toString());
-    }
+
+    ultronix.setUltronixListener(
+        new Ultronix.UltronixListener() {
+          @Override
+          public void OnReceiveData(short freq) {
+            text.setText(freq);
+            Log.v("GGGGGGG", "123");
+          }
+
+          @Override
+          public void OnReceiveError(int code, String msg) {
+            DebugUtils.log("Error while receiving freq");
+          }
+        }
+    );
   }
 
   //Handling callback
