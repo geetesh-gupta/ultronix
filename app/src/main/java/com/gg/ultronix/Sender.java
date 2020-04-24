@@ -7,6 +7,7 @@ import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.os.Build;
 import android.util.Log;
+import java.util.concurrent.TimeUnit;
 
 import com.gg.ultronix.utils.ConfigUtils;
 import com.gg.ultronix.utils.DebugUtils;
@@ -34,7 +35,7 @@ public class Sender {
 
   public void send(Activity activity, int freq) {
     List<Short> list = new ArrayList<>();
-    for (int i = 0; i < ConfigUtils.TIME_BAND; i++) {
+    for (int i = 0; i < 5*ConfigUtils.TIME_BAND; i++) {
       double angle = 2.0 * i * freq * Math.PI / ConfigUtils.SAMPLE_RATE;
       list.add((short) (Math.sin(angle) * ConfigUtils.MAX_SIGNAL_STRENGTH));
     }
@@ -50,10 +51,15 @@ public class Sender {
   private synchronized void play(final List<Short> list) {
     thread = new Thread() {
       public void run() {
-//        while (threadRunning) {
+        while (true) {
           mAudioTrack.play();
-//          while (mAudioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) ;
-//        }
+          try {
+            Thread.sleep(100);
+          } catch (Exception e) {
+            System.out.println("Unable to sleep thread");
+          }
+          mAudioTrack.stop();
+        }
       }
     };
     thread.start();
