@@ -38,29 +38,22 @@ public class Sender {
       double angle = 2.0 * i * freq * Math.PI / ConfigUtils.SAMPLE_RATE;
       list.add((short) (Math.sin(angle) * ConfigUtils.MAX_SIGNAL_STRENGTH));
     }
-    play(list);
+
+    int mode = AudioTrack.MODE_STATIC;
+    if (mAudioTrack == null) {
+      generateAudioTrack(mode);
+      mAudioTrack.write(ListUtils.convertListShortToArrayShort(list), 0, list.size());
+      play(list);
+    }
   }
 
   private synchronized void play(final List<Short> list) {
-    int mode = AudioTrack.MODE_STATIC;
-    generateAudioTrack(mode);
     thread = new Thread() {
       public void run() {
-        if (!started) {
-          if (mAudioTrack == null) generateAudioTrack(mode);
-          mAudioTrack.write(ListUtils.convertListShortToArrayShort(list), 0, list.size());
-          if (mAudioTrack.getState() != AudioTrack.STATE_INITIALIZED) {
-            generateAudioTrack(mode);
-          }
+//        while (threadRunning) {
           mAudioTrack.play();
-          started = true;
-        }
-        if (mAudioTrack.getPlayState() != AudioTrack.PLAYSTATE_PLAYING) {
-          if (mAudioTrack.getState() != AudioTrack.STATE_INITIALIZED) {
-            generateAudioTrack(mode);
-          }
-          mAudioTrack.play();
-        }
+//          while (mAudioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) ;
+//        }
       }
     };
     thread.start();
@@ -68,6 +61,7 @@ public class Sender {
 
   synchronized void stop() {
     started = false;
+    threadRunning = false;
     if (thread != null) {
       try {
         thread.interrupt();
