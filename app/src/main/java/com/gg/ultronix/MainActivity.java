@@ -8,13 +8,18 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.gg.ultronix.exception.UltronixException;
+import com.gg.ultronix.utils.ConfigUtils;
 import com.gg.ultronix.utils.DebugUtils;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+import java.util.ArrayList;
+import java.util.Collections;
 
 public class MainActivity extends AppCompatActivity {
   Ultronix ultronix;
@@ -23,6 +28,8 @@ public class MainActivity extends AppCompatActivity {
   TextView showFreqTextView;
   FloatingActionButton fab;
   private boolean isPlaying = false;
+  long breakTimeLeft = 0;
+  ArrayList<Short> lastTenResults = new ArrayList<Short>();
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -58,25 +65,34 @@ public class MainActivity extends AppCompatActivity {
     showFreqTextView = findViewById(R.id.curFreq);
     freqText = findViewById(R.id.inputFreq);
 
-    fab.setOnClickListener(v -> handlePlay());
+    fab.setOnClickListener(v -> {
+      if (isPlaying) {
+        handleStop();
+      } else {
+        String freqString = freqText.getText().toString();
+        if (!"".equals(freqString)) {
+          int freq = Integer.parseInt(freqString);
+          handlePlay(freq);
+        } else if ("".equals(freqString) && !isPlaying) {
+          Toast.makeText(MainActivity.this, "Please enter a frequency!", Toast.LENGTH_SHORT).show();
+        }
+      }
+    });
   }
 
-  private void handlePlay() {
-    String freqString = freqText.getText().toString();
-    if (!"".equals(freqString)) {
-      if (!isPlaying) {
-        // Play Tone
-        ultronix.send(Integer.parseInt(freqString));
-        isPlaying = true;
-        fab.setImageResource(R.drawable.ic_stop_white_24dp);
-      } else {
-        // Stop Tone
-        ultronix.stopSending();
-        isPlaying = false;
-        fab.setImageResource(R.drawable.ic_play_arrow_white_24dp);
-      }
-    } else if ("".equals(freqString)) {
-      Toast.makeText(MainActivity.this, "Please enter a frequency!", Toast.LENGTH_SHORT).show();
+  private void handleStop() {
+    if (isPlaying) {
+      ultronix.stopSending();
+      isPlaying = false;
+      fab.setImageResource(R.drawable.ic_play_arrow_white_24dp);
+    }
+  }
+
+  private void handlePlay(int freq) {
+    if (!isPlaying) {
+      ultronix.send(freq);
+      isPlaying = true;
+      fab.setImageResource(R.drawable.ic_stop_white_24dp);
     }
   }
 
@@ -96,5 +112,32 @@ public class MainActivity extends AppCompatActivity {
   private void OnReceiveData(short data) {
     DebugUtils.log("Received MaxAmpFreq " + data);
     showFreqTextView.setText(String.valueOf(data));
+    if (lastTenResults.size() < 10)
+      lastTenResults.add(data);
+    else {
+      lastTenResults.remove(0);
+      lastTenResults.add(data);
+      startAlarm();
+    }
+  }
+
+  private void startAlarm() {
+    if (!isPlaying && breakTimeLeft <= 0) {
+      if (Collections.min(lastTenResults) > ConfigUtils.MIN_FREQ_THRESHOLD) {
+        handlePlay(ConfigUtils.ALARM_FREQ);
+        Toast.makeText(MainActivity.this, "Press the stop button to disable alarm!", Toast.LENGTH_LONG).show();
+        new CountDownTimer(ConfigUtils.BREAK_TIME, 1000) {
+
+          public void onTick(long millisUntilFinished) {
+            breakTimeLeft = millisUntilFinished;
+            DebugUtils.log("BreakTimeLeft" + Long.toString(breakTimeLeft));
+          }
+
+          public void onFinish() {
+            breakTimeLeft = 0;
+          }
+        }.start();
+      }
+    }
   }
 }

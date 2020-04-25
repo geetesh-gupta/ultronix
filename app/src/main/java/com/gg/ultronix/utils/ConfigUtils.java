@@ -14,5 +14,9 @@ public class ConfigUtils {
 
   public static final short NONSENSE_DATA = 256;
 
+  public static final short MIN_FREQ_THRESHOLD = 19000;
+  public static final short ALARM_FREQ =  5000;
+  public static final short BREAK_TIME =  5000;
+
   public static final boolean DEBUG_ON = true;
 }
