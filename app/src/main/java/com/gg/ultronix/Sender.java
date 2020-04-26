@@ -20,10 +20,11 @@ class Sender {
   }
 
   void send(int freq) {
-    byte[] generatedFreqBytes = AudioUtils.generateFreqBytes(freq);
+    int duration = 10;
+    float[] freqArray = AudioUtils.generateFreqArray(freq, duration);
     if (mAudioTrack == null) {
       mAudioTrack = AudioUtils.generateAudioTrack();
-      mAudioTrack.write(generatedFreqBytes, 0, generatedFreqBytes.length);
+      mAudioTrack.write(freqArray, 0, freqArray.length, AudioTrack.WRITE_BLOCKING);
       play();
     }
   }
@@ -40,6 +41,7 @@ class Sender {
             System.out.println("Unable to sleep thread");
           }
           if (mAudioTrack == null) break;
+          mAudioTrack.setPlaybackHeadPosition(0);
           mAudioTrack.stop();
         }
       }

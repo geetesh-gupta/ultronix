@@ -31,7 +31,7 @@ class Receiver {
 
   void initializeReceiver() {
     if (audioRecord == null || audioRecord.getState() == AudioRecord.STATE_UNINITIALIZED) {
-      audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, ConfigUtils.SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, ConfigUtils.AUDIO_FORMAT, AudioTrack.getMinBufferSize(ConfigUtils.SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT) * 4);
+      audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, ConfigUtils.SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, ConfigUtils.RECEIVER_AUDIO_FORMAT, AudioTrack.getMinBufferSize(ConfigUtils.SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT) * 4);
     }
     if (audioRecord.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) {
       audioRecord.startRecording();
