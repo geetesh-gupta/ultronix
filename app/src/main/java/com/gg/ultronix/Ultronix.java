@@ -1,7 +1,5 @@
 package com.gg.ultronix;
 
-import com.gg.ultronix.exception.UltronixException;
-
 /**
  * Enable you to use the Ultronix, <br>
  * to transmit and detect ultrasonic sound<br>
@@ -9,14 +7,14 @@ import com.gg.ultronix.exception.UltronixException;
  * @author Geetesh Gupta - geeetshgupta98@gmail.com
  * @version 0.0.1
  */
-public class Ultronix {
+class Ultronix {
   static UltronixListener ultronixListener;
 
-  void startListening() throws UltronixException {
+  void startListening() {
     Receiver.getReceiver().initializeReceiver();
   }
 
-  public void stopListening() throws UltronixException {
+  public void stopListening() {
     Receiver.getReceiver().stopReceiver();
   }
 

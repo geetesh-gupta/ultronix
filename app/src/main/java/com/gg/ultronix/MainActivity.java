@@ -13,7 +13,6 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.gg.ultronix.exception.UltronixException;
 import com.gg.ultronix.utils.ConfigUtils;
 import com.gg.ultronix.utils.DebugUtils;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -22,14 +21,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 public class MainActivity extends AppCompatActivity {
-  Ultronix ultronix;
+  private Ultronix ultronix;
 
-  EditText freqText;
-  TextView showFreqTextView;
-  FloatingActionButton fab;
+  private EditText freqText;
+  private TextView showFreqTextView;
+  private FloatingActionButton fab;
   private boolean isPlaying = false;
-  long breakTimeLeft = 0;
-  ArrayList<Short> lastTenResults = new ArrayList<Short>();
+  private long breakTimeLeft = 0;
+  private final ArrayList<Short> lastTenResults = new ArrayList<>();
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -38,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
     requestPermission();
   }
 
-  public void requestPermission() {
+  private void requestPermission() {
     if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
 
       if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.RECORD_AUDIO)) {
@@ -52,14 +51,10 @@ public class MainActivity extends AppCompatActivity {
     }
   }
 
-  public void work() {
+  private void work() {
     ultronix = new Ultronix();
-    try {
-      ultronix.startListening();
-      ultronix.setUltronixListener(this::OnReceiveData);
-    } catch (UltronixException e) {
-      e.printStackTrace();
-    }
+    ultronix.startListening();
+    ultronix.setUltronixListener(this::OnReceiveData);
 
     fab = findViewById(R.id.fab);
     showFreqTextView = findViewById(R.id.curFreq);
@@ -73,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
         if (!"".equals(freqString)) {
           int freq = Integer.parseInt(freqString);
           handlePlay(freq);
-        } else if ("".equals(freqString) && !isPlaying) {
+        } else if (!isPlaying) {
           Toast.makeText(MainActivity.this, "Please enter a frequency!", Toast.LENGTH_SHORT).show();
         }
       }
@@ -130,7 +125,7 @@ public class MainActivity extends AppCompatActivity {
 
           public void onTick(long millisUntilFinished) {
             breakTimeLeft = millisUntilFinished;
-            DebugUtils.log("BreakTimeLeft" + Long.toString(breakTimeLeft));
+            DebugUtils.log("BreakTimeLeft" + breakTimeLeft);
           }
 
           public void onFinish() {

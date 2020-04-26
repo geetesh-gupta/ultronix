@@ -2,8 +2,6 @@
     <string name="app_name">Ultronix</string>
     <string name="curFreqTitle">Max Amp Receiver Freq</string>
     <string name="curFreq">None</string>
-    <string name="send">Play</string>
-    <string name="stop">Stop</string>
     <string name="inputFreqTitle">Sender Freq:</string>
     <string name="frequency">Enter Sender Freq</string>
     <string name="title">A Social Distancing App</string>

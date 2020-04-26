@@ -20,7 +20,7 @@ class Receiver {
 
   private static Receiver sReceiver;
 
-  private short[] recordedData = new short[ConfigUtils.TIME_BAND];
+  private final short[] recordedData = new short[ConfigUtils.TIME_BAND];
 
   static Receiver getReceiver() {
     if (sReceiver == null) {

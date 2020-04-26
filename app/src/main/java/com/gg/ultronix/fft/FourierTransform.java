@@ -1,12 +1,12 @@
 /*
  * Copyright (c) 2007 - 2008 by Damien Di Fede <ddf@compartmental.net>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify it under the terms of the GNU Library General Public
  * License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Library General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Library General Public License along with this program; if not, write to the Free
  * Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
@@ -93,190 +93,188 @@ package com.gg.ultronix.fft;
  * @see <a href="http://www.dspguide.com/ch8.htm">The Discrete Fourier Transform</a>
  */
 public abstract class FourierTransform {
-    /**
-     * A constant indicating no window should be used on sample buffers.
-     */
-    private static final int NONE = 0;
-    /**
-     * A constant indicating a Hamming window should be used on sample buffers.
-     */
-    private static final int HAMMING = 1;
-    private static final int LINAVG = 2;
-    private static final int LOGAVG = 3;
-    private static final int NOAVG = 4;
-    private static final float TWO_PI = (float) (2 * Math.PI);
-    int timeSize;
-    private int sampleRate;
-    private float bandWidth;
-    private int whichWindow;
-    float[] real;
-    float[] imag;
-    float[] spectrum;
-    private float[] averages;
-    private int whichAverage;
-    int octaves;
-    int avgPerOctave;
+  /**
+   * A constant indicating no window should be used on sample buffers.
+   */
+  private static final int NONE = 0;
+  /**
+   * A constant indicating a Hamming window should be used on sample buffers.
+   */
+  private static final int HAMMING = 1;
+  private static final int LINAVG = 2;
+  private static final int LOGAVG = 3;
+  private static final int NOAVG = 4;
+  private static final float TWO_PI = (float) (2 * Math.PI);
+  final int timeSize;
+  private final int sampleRate;
+  private final float bandWidth;
+  private final int whichWindow;
+  float[] real;
+  float[] imag;
+  float[] spectrum;
+  private float[] averages;
+  private int whichAverage;
+  private int octaves;
+  private int avgPerOctave;
 
-    /**
-     * Construct a FourierTransform that will analyze sample buffers that are <code>ts</code> samples long and contain samples with
-     * a <code>sr</code> sample rate.
-     *
-     * @param ts the length of the buffers that will be analyzed
-     * @param sr the sample rate of the samples that will be analyzed
-     */
-    FourierTransform(int ts, float sr) {
-        timeSize = ts;
-        sampleRate = (int) sr;
-        bandWidth = (2f / timeSize) * ((float) sampleRate / 2f);
-        noAverages();
-        allocateArrays();
-        whichWindow = NONE;
+  /**
+   * Construct a FourierTransform that will analyze sample buffers that are <code>ts</code> samples long and contain samples with
+   * a <code>sr</code> sample rate.
+   *
+   * @param ts the length of the buffers that will be analyzed
+   * @param sr the sample rate of the samples that will be analyzed
+   */
+  FourierTransform(int ts, float sr) {
+    timeSize = ts;
+    sampleRate = (int) sr;
+    bandWidth = (2f / timeSize) * ((float) sampleRate / 2f);
+    noAverages();
+    allocateArrays();
+    whichWindow = NONE;
+  }
+
+  // allocating real, imag, and spectrum are the responsibility of derived
+  // classes
+  // because the size of the arrays will depend on the implementation being used
+  // this enforces that responsibility
+  protected abstract void allocateArrays();
+
+  // fill the spectrum array with the amps of the data in real and imag
+  // used so that this class can handle creating the average array
+  // and also do spectrum shaping if necessary
+  void fillSpectrum() {
+    for (int i = 0; i < spectrum.length; i++) {
+      spectrum[i] = (float) Math.sqrt(real[i] * real[i] + imag[i] * imag[i]);
     }
 
-    // allocating real, imag, and spectrum are the responsibility of derived
-    // classes
-    // because the size of the arrays will depend on the implementation being used
-    // this enforces that responsibility
-    protected abstract void allocateArrays();
-
-    // fill the spectrum array with the amps of the data in real and imag
-    // used so that this class can handle creating the average array
-    // and also do spectrum shaping if necessary
-    void fillSpectrum() {
-        for (int i = 0; i < spectrum.length; i++) {
-            spectrum[i] = (float) Math.sqrt(real[i] * real[i] + imag[i] * imag[i]);
-        }
-
-        if (whichAverage == LINAVG) {
-            int avgWidth = spectrum.length / averages.length;
-            for (int i = 0; i < averages.length; i++) {
-                float avg = 0;
-                int j;
-                for (j = 0; j < avgWidth; j++) {
-                    int offset = j + i * avgWidth;
-                    if (offset < spectrum.length) {
-                        avg += spectrum[offset];
-                    } else {
-                        break;
-                    }
-                }
-                avg /= j + 1;
-                averages[i] = avg;
-            }
-        } else if (whichAverage == LOGAVG) {
-            for (int i = 0; i < octaves; i++) {
-                float lowFreq, hiFreq, freqStep;
-                if (i == 0) {
-                    lowFreq = 0;
-                } else {
-                    lowFreq = (sampleRate / 2) / (float) Math.pow(2, octaves - i);
-                }
-                hiFreq = (sampleRate / 2) / (float) Math.pow(2, octaves - i - 1);
-                freqStep = (hiFreq - lowFreq) / avgPerOctave;
-                float f = lowFreq;
-                for (int j = 0; j < avgPerOctave; j++) {
-                    int offset = j + i * avgPerOctave;
-                    averages[offset] = calcAvg(f, f + freqStep);
-                    f += freqStep;
-                }
-            }
-        }
-    }
-
-    /**
-     * Sets the object to not compute averages.
-     */
-    private void noAverages() {
-        averages = new float[0];
-        whichAverage = NOAVG;
-    }
-
-    void doWindow(float[] samples) {
-        switch (whichWindow) {
-            case HAMMING:
-                hamming(samples);
-                break;
-        }
-    }
-
-    // windows the data in samples with a Hamming window
-    private void hamming(float[] samples) {
-        for (int i = 0; i < samples.length; i++) {
-            samples[i] *= (0.54f - 0.46f * Math.cos(TWO_PI * i / (samples.length - 1)));
-        }
-    }
-
-    /**
-     * Returns the amplitude of the requested frequency band.
-     *
-     * @param i the index of a frequency band
-     * @return the amplitude of the requested frequency band
-     */
-    private float getBand(int i) {
-        if (i < 0) i = 0;
-        if (i > spectrum.length - 1) i = spectrum.length - 1;
-        return spectrum[i];
-    }
-
-    /**
-     * Returns the width of each frequency band in the spectrum (in Hz). It should be noted that the bandwidth of the first and
-     * last frequency bands is half as large as the value returned by this function.
-     *
-     * @return the width of each frequency band in Hz.
-     */
-    private float getBandWidth() {
-        return bandWidth;
-    }
-
-    /**
-     * Returns the index of the frequency band that contains the requested frequency.
-     *
-     * @param freq the frequency you want the index for (in Hz)
-     * @return the index of the frequency band that contains freq
-     */
-    private int freqToIndex(float freq) {
-        // special case: freq is lower than the bandwidth of spectrum[0]
-        if (freq < getBandWidth() / 2) return 0;
-        // special case: freq is within the bandwidth of spectrum[spectrum.length - 1]
-        if (freq > sampleRate / 2 - getBandWidth() / 2) return spectrum.length - 1;
-        // all other cases
-        float fraction = freq / (float) sampleRate;
-        return Math.round(timeSize * fraction);
-    }
-
-    /**
-     * Gets the amplitude of the requested frequency in the spectrum.
-     *
-     * @param freq the frequency in Hz
-     * @return the amplitude of the frequency in the spectrum
-     */
-    public float getFreq(float freq) {
-        return getBand(freqToIndex(freq));
-    }
-
-    /**
-     * Calculate the average amplitude of the frequency band bounded by <code>lowFreq</code> and <code>hiFreq</code>, inclusive.
-     *
-     * @param lowFreq the lower bound of the band
-     * @param hiFreq  the upper bound of the band
-     * @return the average of all spectrum values within the bounds
-     */
-    private float calcAvg(float lowFreq, float hiFreq) {
-        int lowBound = freqToIndex(lowFreq);
-        int hiBound = freqToIndex(hiFreq);
+    if (whichAverage == LINAVG) {
+      int avgWidth = spectrum.length / averages.length;
+      for (int i = 0; i < averages.length; i++) {
         float avg = 0;
-        for (int i = lowBound; i <= hiBound; i++) {
-            avg += spectrum[i];
+        int j;
+        for (j = 0; j < avgWidth; j++) {
+          int offset = j + i * avgWidth;
+          if (offset < spectrum.length) {
+            avg += spectrum[offset];
+          } else {
+            break;
+          }
         }
-        avg /= (hiBound - lowBound + 1);
-        return avg;
+        avg /= j + 1;
+        averages[i] = avg;
+      }
+    } else if (whichAverage == LOGAVG) {
+      for (int i = 0; i < octaves; i++) {
+        float lowFreq, hiFreq, freqStep;
+        if (i == 0) {
+          lowFreq = 0;
+        } else {
+          lowFreq = (sampleRate / (float) 2) / (float) Math.pow(2, octaves - i);
+        }
+        hiFreq = (sampleRate / (float) 2) / (float) Math.pow(2, octaves - i - 1);
+        freqStep = (hiFreq - lowFreq) / avgPerOctave;
+        float f = lowFreq;
+        for (int j = 0; j < avgPerOctave; j++) {
+          int offset = j + i * avgPerOctave;
+          averages[offset] = calcAvg(f, f + freqStep);
+          f += freqStep;
+        }
+      }
     }
+  }
 
-    /**
-     * Performs a forward transform on <code>buffer</code>.
-     *
-     * @param buffer the buffer to analyze
-     */
-    public abstract void forward(float[] buffer);
+  /**
+   * Sets the object to not compute averages.
+   */
+  private void noAverages() {
+    averages = new float[0];
+    whichAverage = NOAVG;
+  }
+
+  void doWindow(float[] samples) {
+    if (whichWindow == HAMMING) {
+      hamming(samples);
+    }
+  }
+
+  // windows the data in samples with a Hamming window
+  private void hamming(float[] samples) {
+    for (int i = 0; i < samples.length; i++) {
+      samples[i] *= (0.54f - 0.46f * Math.cos(TWO_PI * i / (samples.length - 1)));
+    }
+  }
+
+  /**
+   * Returns the amplitude of the requested frequency band.
+   *
+   * @param i the index of a frequency band
+   * @return the amplitude of the requested frequency band
+   */
+  private float getBand(int i) {
+    if (i < 0) i = 0;
+    if (i > spectrum.length - 1) i = spectrum.length - 1;
+    return spectrum[i];
+  }
+
+  /**
+   * Returns the width of each frequency band in the spectrum (in Hz). It should be noted that the bandwidth of the first and
+   * last frequency bands is half as large as the value returned by this function.
+   *
+   * @return the width of each frequency band in Hz.
+   */
+  private float getBandWidth() {
+    return bandWidth;
+  }
+
+  /**
+   * Returns the index of the frequency band that contains the requested frequency.
+   *
+   * @param freq the frequency you want the index for (in Hz)
+   * @return the index of the frequency band that contains freq
+   */
+  private int freqToIndex(float freq) {
+    // special case: freq is lower than the bandwidth of spectrum[0]
+    if (freq < getBandWidth() / 2) return 0;
+    // special case: freq is within the bandwidth of spectrum[spectrum.length - 1]
+    if (freq > sampleRate / (float) 2 - getBandWidth() / 2) return spectrum.length - 1;
+    // all other cases
+    float fraction = freq / (float) sampleRate;
+    return Math.round(timeSize * fraction);
+  }
+
+  /**
+   * Gets the amplitude of the requested frequency in the spectrum.
+   *
+   * @param freq the frequency in Hz
+   * @return the amplitude of the frequency in the spectrum
+   */
+  public float getFreq(float freq) {
+    return getBand(freqToIndex(freq));
+  }
+
+  /**
+   * Calculate the average amplitude of the frequency band bounded by <code>lowFreq</code> and <code>hiFreq</code>, inclusive.
+   *
+   * @param lowFreq the lower bound of the band
+   * @param hiFreq  the upper bound of the band
+   * @return the average of all spectrum values within the bounds
+   */
+  private float calcAvg(float lowFreq, float hiFreq) {
+    int lowBound = freqToIndex(lowFreq);
+    int hiBound = freqToIndex(hiFreq);
+    float avg = 0;
+    for (int i = lowBound; i <= hiBound; i++) {
+      avg += spectrum[i];
+    }
+    avg /= (hiBound - lowBound + 1);
+    return avg;
+  }
+
+  /**
+   * Performs a forward transform on <code>buffer</code>.
+   *
+   * @param buffer the buffer to analyze
+   */
+  public abstract void forward(float[] buffer);
 
 }
